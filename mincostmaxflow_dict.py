@@ -53,7 +53,7 @@ def edmonds_karp(cap, adj, s, t):
 
 
 def shortest_paths(adj, cap, cost, v0):
-    """ Bellman-Ford algorithm to find a shortest path. Returns a dictonary of
+    """ Bellman-Ford algorithm to find a shortest path. Returns a dictionary of
     distatnce """
     n = len(cap)
 
@@ -82,7 +82,13 @@ def shortest_paths(adj, cap, cost, v0):
     return dist, parent
 
 
-def min_cost(s, t, desired_flow, adj, cost_ar, cap):
+def min_cost(s: int,
+             t: int,
+             desired_flow: int,
+             adj: List[List[int]],
+             cost_ar: List[int],
+             cap: List[List[int]]) -> int:
+    """  """
     flow, cost = 0, 0
     while flow < desired_flow:
         sp_dist, sp_cost = shortest_paths(adj, cap, cost_ar, s)
@@ -118,13 +124,18 @@ def main():
         cap[(u, v)] = c
         cap2[(u, v)] = c
         cost[(u, v)] = w
+        cost[(v, u)] = -w
         adj[u].append(v)
         adj[v].append(u)
 
     flow = edmonds_karp(cap, adj, s, t)
+    if DEBUG:
+        print("Found max flow")
     m_cost = min_cost(s, t, flow, adj, cost, cap2)
     print(flow, m_cost)
 
+
+DEBUG = True
 
 if __name__ == "__main__":
     main()

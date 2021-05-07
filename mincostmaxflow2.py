@@ -17,10 +17,8 @@ def edmonds_karp(cap: List[List[int]],
     """ Edmonds-Karp max-flow algorithm for ***integer*** capacity.
 
     `cap` stores the capacity for pairs of vertices.
-    adj stores adjacent vertices for every vertex.
     s and t are the source and sink, respectively.
     """
-    # number of vertices in the graph TODO: known variable
     n = len(adj)
     flow = 0
 
@@ -28,7 +26,7 @@ def edmonds_karp(cap: List[List[int]],
         """ Breadth first search to find path from "s" to "t". Return the flow
         to this node as well as a list of parents of the path to get to "t" """
         parents = [NOT_SEEN for _ in range(n)]
-        # We store a queue of (vertex, bottleneck_flow) pairs. There is no
+        # We store a queue of (vertex, bottleneck_flow) pairs. There is not
         # bottleneck flow to 's', thus we set it to infinity.
         Q = deque([(s, INF)])
         while Q:
@@ -64,14 +62,12 @@ def edmonds_karp(cap: List[List[int]],
     return flow
 
 
-def cheapest_path(adj: List[List[int]],
+def shortest_paths(adj: List[List[int]],
                    cap: List[List[int]],
                    cost: List[List[int]],
                    s: int) -> Tuple[List[int], List[int]]:
     """ Shortest-Path-Faster-Algorithm """
-    # TODO redundant variable
     n = len(cap)
-    # TODO ouwie
     dist = [INF] * n
     dist[s] = 0
     parent = [NOT_SEEN] * n
@@ -113,7 +109,7 @@ def min_cost(s: int,
     cost = 0
     while flow < desired_flow:
         # Find shortest path
-        dist, prnt = cheapest_path(adj, cap, cost_ar, s)
+        dist, prnt = shortest_paths(adj, cap, cost_ar, s)
         # If there is not path to t, we are done.
         if dist[t] == INF:
             break
