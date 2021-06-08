@@ -1,5 +1,4 @@
-import csv
-import collections
+import copy
 import sys
 from collections import deque
 from typing import Tuple, DefaultDict, Dict, List
@@ -65,9 +64,9 @@ def edmonds_karp(cap: List[List[int]],
 
 
 def cheapest_path(adj: List[List[int]],
-                   cap: List[List[int]],
-                   cost: List[List[int]],
-                   s: int) -> Tuple[List[int], List[int]]:
+                  cap: List[List[int]],
+                  cost: List[List[int]],
+                  s: int) -> Tuple[List[int], List[int]]:
     """ Shortest-Path-Faster-Algorithm """
     # TODO redundant variable
     n = len(cap)
@@ -103,17 +102,100 @@ def cheapest_path(adj: List[List[int]],
     return dist, parent
 
 
+def bellman_ford(adj, cost, cap, s: int):
+    """  Bellman-Ford for detecting negative cycles for use in Cycle-
+    Cancelling alg. if no negative cycles, return None
+ """
+    n = len(adj)
+    dist = [INF] * n
+    parent = [-1] * n
+    dist[s] = 0
+
+    # Repeat |V| - 1 times.
+    for _ in range(1, len(cap)):
+        for node, nbs in enumerate(adj):
+            for nb in nbs:
+                weight = cost[node][nb]
+                if dist[node] + weight < dist[nb] and cap[node][nb] > 0:
+                    dist[nb] = dist[node] + weight
+                    parent[nb] = node
+
+    # Check for negative cycle.
+    C = - 1
+    for node, nbs in enumerate(adj):
+        for nb in nbs:
+            weight = cost[node][nb]
+            if dist[node] != INF and dist[node] + weight < dist[nb]:
+                # Store one of the vertex of
+                # the negative weight cycle
+                C = node
+                break
+
+    if C == -1:
+        return False
+    else:
+        for _ in range(n):
+            C = parent[C]
+
+        # To store the cycle vertex
+        cycle = []
+        v = C
+
+        while True:
+            cycle.append(v)
+            if (v == C and len(cycle) > 1):
+                break
+            v = parent[v]
+
+        # Reverse cycle[]
+        cycle.reverse()
+        return cycle
+
+
+def min_cost_cc(s: int,
+                t: int,
+                adj: List[List[int]],
+                cost_ar: List[List[int]],
+                cap: List[List[int]]) -> Tuple[int, int, List[List[int]]]:
+
+    cap2 = copy.deepcopy(cap)
+    # find feasible maxflow
+    maxflow = edmonds_karp(cap2, adj, s, t)
+    cycle = bellman_ford(adj, cost_ar, cap2, s)
+    while cycle:
+        if -1 in cycle:
+            break
+
+        # smallest capacity of the cycle
+        flow = min(cap2[u][v] for u, v in zip(cycle, cycle[1:]))
+
+        for u, v in zip(cycle, cycle[1:]):
+            cap2[u][v] -= flow
+            cap2[v][u] += flow
+        cycle = bellman_ford(adj, cost_ar, cap2, s)
+    tot_cost = 0
+    for source, targets in enumerate(zip(cap, cap2)):
+        for target, (old_cap, new_cap) in enumerate(zip(*targets)):
+            flw = old_cap - new_cap
+            tot_cost += flw * cost_ar[source][target] if flw > 0 else 0
+
+    return maxflow, tot_cost, cap2
+
+
 def min_cost(s: int,
              t: int,
-             desired_flow: int,
              adj: List[List[int]],
              cost_ar: List[List[int]],
-             cap: List[List[int]]) -> Tuple[int, int]:
+             capp: List[List[int]],
+             desired_flow: int = 0) -> Tuple[int, int, List[List[int]]]:
+    if not desired_flow:
+        cap2 = copy.deepcopy(capp)
+        desired_flow = edmonds_karp(cap2, adj, s, t)
     flow = 0
     cost = 0
     while flow < desired_flow:
         # Find shortest path
-        dist, prnt = cheapest_path(adj, cap, cost_ar, s)
+        dist, prnt = cheapest_path(adj, capp, cost_ar, s)
         # If there is not path to t, we are done.
         if dist[t] == INF:
             break
@@ -122,7 +204,7 @@ def min_cost(s: int,
         f = desired_flow - flow
         cur = t
         while cur != s:
-            f = min(f, cap[prnt[cur]][cur])
+            f = min(f, capp[prnt[cur]][cur])
             cur = prnt[cur]
 
         # Apply the flow
@@ -130,12 +212,13 @@ def min_cost(s: int,
         cost += f * dist[t]
         cur = t
         while cur != s:
-            cap[prnt[cur]][cur] -= f
-            cap[cur][prnt[cur]] += f
+            capp[prnt[cur]][cur] -= f
+            capp[cur][prnt[cur]] += f
             cur = prnt[cur]
         if DEBUG:
             print(flow, cost)
-    return flow, cost
+
+    return flow, cost, capp
 
 
 def main():
@@ -149,7 +232,6 @@ def main():
     n, m, s, t = list(map(int, input().split()))
 
     cap = [[0 for _ in range(n)] for _ in range(n)]
-    cap2 = [[0 for _ in range(n)] for _ in range(n)]
     cost = [[0 for _ in range(n)] for _ in range(n)]
     adj: List[List[int]] = [[] for _ in range(n)]
 
@@ -158,23 +240,26 @@ def main():
     for _ in range(m):
         u, v, c, w = list(map(int, input().split()))
         cap[u][v] = c
-        cap2[u][v] = c
         cost[u][v] = w
         cost[v][u] = -w
         adj[u].append(v)
         adj[v].append(u)
-
     if DEBUG:
         print("Done reading from input")
-    flow = edmonds_karp(cap, adj, s, t)
-    if DEBUG:
-        print("Found max flow")
-    res = min_cost(s, t, flow, adj, cost, cap2)
-    if DEBUG:
-        print("Found min cost")
-    print(*res)
+
+    # print("Cycle Cacnelling gives;")
+    print(*min_cost_cc(s, t, adj, cost, cap)[:2])
+    # print()
+
+    # flow = edmonds_karp(cap, adj, s, t)
+    # if DEBUG:
+    #     print("Found max flow")
+    # res = min_cost(s, t, flow, adj, cost, cap2)
+    # if DEBUG:
+    #     print("Found min cost")
+    # print(*res)
 
 
-DEBUG = 1
+DEBUG = 0
 if __name__ == "__main__":
     main()
