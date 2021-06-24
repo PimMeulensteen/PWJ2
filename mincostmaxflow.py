@@ -5,21 +5,18 @@ from typing import Tuple, DefaultDict, Dict, List
 
 # "sys.stdin.readline" is faster than the default input.
 input = sys.stdin.readline
-INF = 10**18
+INF = 10 ** 18
 NOT_SEEN = -1
 
 
-def edmonds_karp(cap: List[List[int]],
-                 adj: List[List[int]],
-                 s: int,
-                 t: int) -> int:
+def edmonds_karp(cap: List[List[int]], adj: List[List[int]], s: int, t: int) -> int:
     """ Edmonds-Karp max-flow algorithm for ***integer*** capacity.
 
     `cap` stores the capacity for pairs of vertices.
     adj stores adjacent vertices for every vertex.
     s and t are the source and sink, respectively.
     """
-    # number of vertices in the graph TODO: known variable
+    # number of vertices in the graph
     n = len(adj)
     flow = 0
 
@@ -63,10 +60,9 @@ def edmonds_karp(cap: List[List[int]],
     return flow
 
 
-def cheapest_path(adj: List[List[int]],
-                  cap: List[List[int]],
-                  cost: List[List[int]],
-                  s: int) -> Tuple[List[int], List[int]]:
+def cheapest_path(
+    adj: List[List[int]], cap: List[List[int]], cost: List[List[int]], s: int
+) -> Tuple[List[int], List[int]]:
     """ Shortest-Path-Faster-Algorithm """
     # TODO redundant variable
     n = len(cap)
@@ -102,7 +98,7 @@ def cheapest_path(adj: List[List[int]],
     return dist, parent
 
 
-def bellman_ford(adj, cost, cap, s: int):
+def bellman_ford(adj: List[List[int]], cap: List[List[int]], cost: List[List[int]], s: int) -> List[int]:
     """  Bellman-Ford for detecting negative cycles for use in Cycle-
     Cancelling alg. if no negative cycles, return None
  """
@@ -121,7 +117,7 @@ def bellman_ford(adj, cost, cap, s: int):
                     parent[nb] = node
 
     # Check for negative cycle.
-    C = - 1
+    C = -1
     for node, nbs in enumerate(adj):
         for nb in nbs:
             weight = cost[node][nb]
@@ -143,7 +139,7 @@ def bellman_ford(adj, cost, cap, s: int):
 
         while True:
             cycle.append(v)
-            if (v == C and len(cycle) > 1):
+            if v == C and len(cycle) > 1:
                 break
             v = parent[v]
 
@@ -152,27 +148,34 @@ def bellman_ford(adj, cost, cap, s: int):
         return cycle
 
 
-def min_cost_cc(s: int,
-                t: int,
-                adj: List[List[int]],
-                cost_ar: List[List[int]],
-                cap: List[List[int]]) -> Tuple[int, int, List[List[int]]]:
-
+def min_cost_cc(
+    s: int,
+    t: int,
+    adj: List[List[int]],
+    cost_ar: List[List[int]],
+    cap: List[List[int]]
+) -> Tuple[int, int, List[List[int]]]:
     cap2 = copy.deepcopy(cap)
-    # find feasible maxflow
+
+    # Create a feasable flow.
     maxflow = edmonds_karp(cap2, adj, s, t)
+
+    # Find the minimal cost flow.
     cycle = bellman_ford(adj, cost_ar, cap2, s)
     while cycle:
         if -1 in cycle:
             break
 
-        # smallest capacity of the cycle
+        # smallest capacity of the cycle.
         flow = min(cap2[u][v] for u, v in zip(cycle, cycle[1:]))
 
         for u, v in zip(cycle, cycle[1:]):
             cap2[u][v] -= flow
             cap2[v][u] += flow
+
         cycle = bellman_ford(adj, cost_ar, cap2, s)
+
+    # Calculate the actual cost of the flow.
     tot_cost = 0
     for source, targets in enumerate(zip(cap, cap2)):
         for target, (old_cap, new_cap) in enumerate(zip(*targets)):
@@ -182,12 +185,14 @@ def min_cost_cc(s: int,
     return maxflow, tot_cost, cap2
 
 
-def min_cost(s: int,
-             t: int,
-             adj: List[List[int]],
-             cost_ar: List[List[int]],
-             capp: List[List[int]],
-             desired_flow: int = 0) -> Tuple[int, int, List[List[int]]]:
+def min_cost(
+    s: int,
+    t: int,
+    adj: List[List[int]],
+    cost_ar: List[List[int]],
+    capp: List[List[int]],
+    desired_flow: int = 0,
+) -> Tuple[int, int, List[List[int]]]:
     if not desired_flow:
         cap2 = copy.deepcopy(capp)
         desired_flow = edmonds_karp(cap2, adj, s, t)
@@ -215,51 +220,5 @@ def min_cost(s: int,
             capp[prnt[cur]][cur] -= f
             capp[cur][prnt[cur]] += f
             cur = prnt[cur]
-        if DEBUG:
-            print(flow, cost)
 
     return flow, cost, capp
-
-
-def main():
-    """ The first line of input contains a line with four
-    non-negative integers (n, m, s, t) separated by single spaces, where 'n'
-    is the numbers of nodes in the graph, 'm' is the number of edges, 's' is
-    the source and 't' is the sink (s != t). Nodes are numbered from 0 to n−1.
-    Then follow 'm' lines, each line consisting of four (space-separated)
-    integers 'u', 'v', 'c' and 'w' indicating that there is an edge from 'u'
-    to 'v' in the graph with capacity 'c' and cost 'w'. """
-    n, m, s, t = list(map(int, input().split()))
-
-    cap = [[0 for _ in range(n)] for _ in range(n)]
-    cost = [[0 for _ in range(n)] for _ in range(n)]
-    adj: List[List[int]] = [[] for _ in range(n)]
-
-    if DEBUG:
-        print("Created data arrays")
-    for _ in range(m):
-        u, v, c, w = list(map(int, input().split()))
-        cap[u][v] = c
-        cost[u][v] = w
-        cost[v][u] = -w
-        adj[u].append(v)
-        adj[v].append(u)
-    if DEBUG:
-        print("Done reading from input")
-
-    # print("Cycle Cacnelling gives;")
-    print(*min_cost_cc(s, t, adj, cost, cap)[:2])
-    # print()
-
-    # flow = edmonds_karp(cap, adj, s, t)
-    # if DEBUG:
-    #     print("Found max flow")
-    # res = min_cost(s, t, flow, adj, cost, cap2)
-    # if DEBUG:
-    #     print("Found min cost")
-    # print(*res)
-
-
-DEBUG = 0
-if __name__ == "__main__":
-    main()

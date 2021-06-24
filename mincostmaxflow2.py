@@ -6,14 +6,11 @@ from typing import Tuple, DefaultDict, Dict, List
 
 # "sys.stdin.readline" is faster than the default input.
 input = sys.stdin.readline
-INF = 10**18
+INF = 10 ** 18
 NOT_SEEN = -1
 
 
-def edmonds_karp(cap: List[List[int]],
-                 adj: List[List[int]],
-                 s: int,
-                 t: int) -> int:
+def edmonds_karp(cap: List[List[int]], adj: List[List[int]], s: int, t: int) -> int:
     """ Edmonds-Karp max-flow algorithm for ***integer*** capacity.
 
     `cap` stores the capacity for pairs of vertices.
@@ -62,10 +59,9 @@ def edmonds_karp(cap: List[List[int]],
     return flow
 
 
-def shortest_paths(adj: List[List[int]],
-                   cap: List[List[int]],
-                   cost: List[List[int]],
-                   s: int) -> Tuple[List[int], List[int]]:
+def shortest_paths(
+    adj: List[List[int]], cap: List[List[int]], cost: List[List[int]], s: int
+) -> Tuple[List[int], List[int]]:
     """ Shortest-Path-Faster-Algorithm """
     n = len(cap)
     dist = [INF] * n
@@ -99,12 +95,14 @@ def shortest_paths(adj: List[List[int]],
     return dist, parent
 
 
-def min_cost(s: int,
-             t: int,
-             desired_flow: int,
-             adj: List[List[int]],
-             cost_ar: List[List[int]],
-             cap: List[List[int]]) -> Tuple[int, int]:
+def min_cost(
+    s: int,
+    t: int,
+    desired_flow: int,
+    adj: List[List[int]],
+    cost_ar: List[List[int]],
+    cap: List[List[int]],
+) -> Tuple[int, int]:
     flow = 0
     cost = 0
     while flow < desired_flow:

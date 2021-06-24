@@ -68,8 +68,7 @@ def shortest_paths(adj, cap, cost, v0):
         u = q.popleft()
         m[u] = 0
         for v in adj[u]:
-            if cap[(u, v)] > 0 and \
-                    dist[v] > dist[u] + cost[(u, v)]:
+            if cap[(u, v)] > 0 and dist[v] > dist[u] + cost[(u, v)]:
                 dist[v] = dist[u] + cost[(u, v)]
                 parent[v] = u
                 if m[v] == 2:
@@ -82,12 +81,14 @@ def shortest_paths(adj, cap, cost, v0):
     return dist, parent
 
 
-def min_cost(s: int,
-             t: int,
-             desired_flow: int,
-             adj: List[List[int]],
-             cost_ar: List[int],
-             cap: List[List[int]]) -> int:
+def min_cost(
+    s: int,
+    t: int,
+    desired_flow: int,
+    adj: List[List[int]],
+    cost_ar: List[int],
+    cap: List[List[int]],
+) -> int:
     """  """
     flow, cost = 0, 0
     while flow < desired_flow:

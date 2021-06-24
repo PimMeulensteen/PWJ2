@@ -1,11 +1,13 @@
 import copy
 from random import shuffle, sample, seed
-from typing import Callable, List, Mapping
+from typing import Callable, List, Tuple
 from mincostmaxflow import min_cost_cc, min_cost
+from da_stb import da_stb
+
 WeightFunc = Callable[[int], int]
 
 
-class Results():
+class Results:
     sum_of_places: int
     hist: List[int]
     res: List[int]
@@ -13,6 +15,7 @@ class Results():
     def __init__(self, placement) -> None:
         self.res = placement
         self.sum_of_places = sum(placement)
+        self.bin()
 
     def bin(self):
         """ Create the histogram of the results and store it in self.hist."""
@@ -21,13 +24,14 @@ class Results():
             self.hist[r] += 1
 
     def __repr__(self) -> str:
+
         return f"Results(count: {len(self.res)}, sum: {self.sum_of_places}, hist: {self.hist[1:]})"
 
     def __gt__(self, other):
         return self.sum_of_places > other.sum_of_places
 
 
-class StudentSchools():
+class StudentSchools:
     len_prio: int
     schools: List[int]
     students: List[List[int]]
@@ -101,7 +105,7 @@ class StudentSchools():
                 cap[i + 1][idx] = 1
                 cost[i + 1][idx] = weight(spot + 1)
                 cost[idx][i + 1] = -weight(spot + 1)
-                adj[i+1].append(idx)
+                adj[i + 1].append(idx)
                 adj[idx].append(i + 1)
 
         # School to sink
@@ -113,46 +117,36 @@ class StudentSchools():
 
         return source, sink, adj, cost, cap
 
-    def gen_data(self,
-                 n_schools: int = 63,
-                 n_students: int = 8000,
-                 n_fac: float = 1.1) -> None:
+    def gen_data(
+        self, n_schools: int = 63, n_students: int = 8000, n_fac: float = 1.1
+    ) -> None:
+        """ Generate random data as testing data. """
         self.len_prio = min(12, n_schools)
         school_cap = [int((n_students * n_fac) / n_schools)] * n_schools
         delta = 25
-        school_cap = [j - delta if i % 2 else j +
-                      delta for i, j in enumerate(school_cap)]
+        school_cap = [
+            j - delta if i % 2 else j + delta for i, j in enumerate(school_cap)
+        ]
         student_choice: List[List[int]] = [[] for _ in range(n_students)]
 
         for i in range(n_students):
-            student_choice[i] = sample(
-                range(n_schools), self.len_prio)
+            student_choice[i] = sample(range(n_schools), self.len_prio)
 
         self.schools = school_cap
         self.students = student_choice
 
     def da_stb(self) -> Results:
-        used = [0] * len(self.schools)
-        placement = []
-        for student in sample(self.students, len(self.students)):
-            placed = False
-            for rank, school_at_rank in enumerate(student):
-                if used[school_at_rank] < self.schools[school_at_rank]:
-                    placement.append(rank + 1)
-                    used[school_at_rank] += 1
-                    placed = True
-                    break
-            if not placed:
-                placement.append(13)
-        return Results(placement)
+        """ Run the Deffered Acceptence Single Tiebreaker algorithm, which is
+        also used in Amsterdam. """
 
-    def mincostmaxflow(self, mode='c') -> Results:
+        return Results(da_stb(self.schools, self.students))
+
+    def mincostmaxflow(self) -> Results:
+        """ Run the minimal cost-max flow algorithm on the data in this class. """
         s, t, adj, cost, cap1 = self.as_graph()
         cap = copy.deepcopy(cap1)
-        if mode == 'c':
-            _, _, cap2 = min_cost_cc(s, t, adj, cost, cap1)
-        else:
-            _, _, cap2 = min_cost(s, t, adj, cost, cap1)
+
+        _, _, cap2 = min_cost_cc(s, t, adj, cost, cap1)
 
         placement = []
 
@@ -175,12 +169,15 @@ class StudentSchools():
 
         return Results(placement)
 
-    def run_all_methods(self) -> List[Results]:
-        return [self.da_stb(), self.mincostmaxflow()]
+    def run_all_methods(self) -> Tuple[Results, Results]:
+        """ Run DA-STB and MCMF. """
+        return (self.da_stb(), self.mincostmaxflow())
 
 
-def run_tests(mtc, n=100):
-    def f(x):
-        return (mtc.da_stb().sum_of_places - min_cost) / min_cost
-    min_cost = mtc.mincostmaxflow().sum_of_places
+def run_tests(mtc, n=100) -> Tuple[int, List[float]]:
+    def f(_) -> float:
+        return mtc.da_stb()
+
+    min_cost = mtc.mincostmaxflow()
+    print("Done with MCMF")
     return min_cost, list(map(f, range(n)))
